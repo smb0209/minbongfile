@@ -7,7 +7,7 @@ rem 모든 작업 디렉토리를 C:\adImg 기준으로 강제 고정합니다.
 set "BASE_DIR=C:\adImg"
 set "TARGET_DIR=C:\adImg\img"
 set "PORT=8080"
-set "IP_ADDR=192.168.11.210"
+set "IP_ADDR=192.168.11.101"
 set "JSON_PATH=C:\adImg\menu.json"
 set "PS_SCRIPT=C:\adImg\server_core.ps1"
 
