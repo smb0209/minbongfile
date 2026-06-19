@@ -1,22 +1,45 @@
 @echo off
 rem ====================================================================
-rem  Calgary Store LG TV Signage - Windows 7 Direct Path Fixed Version
+rem  Calgary Store LG TV Signage - Bulletproof Multi-Stage Version
 rem ====================================================================
 
 set "BASE_DIR=C:\adImg"
 set "TARGET_DIR=C:\adImg\img"
 set "PORT=8080"
 set "IP_ADDR=192.168.11.101"
+set "JSON_PATH=C:\adImg\menu.json"
 
-echo [1/2] Verifying and Preparing Absolute Directories...
+echo [1/3] Preparing Directories...
 if not exist "%BASE_DIR%" mkdir "%BASE_DIR%"
 if not exist "%TARGET_DIR%" mkdir "%TARGET_DIR%"
-
 cd /d "%BASE_DIR%"
 
-echo [2/2] Launching Dynamic Server Infrastructure via PowerShell...
+echo [2/3] Forcing menu.json Generation via CMD Echo...
+rem 이미지 폴더를 스캔하기 전에 우선 기본 구조를 하드코딩으로 확실하게 박아버립니다.
+(
+echo {
+echo   "name": "Calgary Store Signage List",
+echo   "type": "list",
+echo   "template": { "type": "image", "layout": "0,0,12,12", "color": "msx-black" },
+echo   "items": [
+echo     {
+echo       "title": "Ad Slide 1",
+echo       "image": "http://%IP_ADDR%:%PORT%/img/01.jpg",
+echo       "properties": { "duration": 10 }
+echo     },
+echo     {
+echo       "title": "Ad Slide 2",
+echo       "image": "http://%IP_ADDR%:%PORT%/img/02.jpg",
+echo       "properties": { "duration": 10 }
+echo     }
+echo   ]
+echo }
+) > "%JSON_PATH%"
+
+echo menu.json has been forced to create in C:\adImg!
 echo.
 
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$port=%PORT%; $ip='%IP_ADDR%'; $baseDir='C:\adImg'; $targetDir='C:\adImg\img'; $jsonPath='C:\adImg\menu.json'; $netstat=netstat -ano | findstr \":$port \"; if ($netstat) { foreach($line in $netstat) { $procId=($line -split '\s+')[-1]; if ($procId -match '^\d+$') { Write-Host \"Killing old process ID: $procId\" -ForegroundColor Yellow; Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue; } } Start-Sleep -Seconds 1; } $extensions=@('.jpg', '.jpeg', '.png', '.webp'); $files=Get-ChildItem -Path $targetDir | Where-Object { $extensions -contains $_.Extension.ToLower() } | Sort-Object Name; $jsonItems=@(); foreach ($f in $files) { $itemStr = '{\"title\": \"' + $f.BaseName + '\", \"image\": \"http://' + $ip + ':' + $port + '/img/' + $f.Name + '\", \"properties\": {\"duration\": 10}}'; $jsonItems += $itemStr; } $allItemsStr = $jsonItems -join ', '; $finalJson = '{\"name\": \"Calgary Store Signage Sorted List\", \"type\": \"list\", \"template\": {\"type\": \"image\", \"layout\": \"0,0,12,12\", \"color\": \"msx-black\"}, \"items\": [' + $allItemsStr + ']}'; [System.IO.File]::WriteAllText($jsonPath, $finalJson, [System.Text.Encoding]::UTF8); Write-Host \"menu.json safely generated in C:\adImg!\" -ForegroundColor Cyan; $listener=New-Object System.Net.HttpListener; $listener.Prefixes.Add(\"http://*:$port/\"); $listener.Start(); Write-Host '--------------------------------------------------' -ForegroundColor Green; Write-Host \"  Local Server Running on http://$($ip):$port  \" -ForegroundColor Green; Write-Host '--------------------------------------------------' -ForegroundColor Green; Write-Host 'Keep this window OPEN. Press Ctrl+C to stop.'; while ($listener.IsListening) { $context=$listener.GetContext(); $request=$context.Request; $response=$context.Response; $response.Headers.Add('Access-Control-Allow-Origin', '*'); $response.Headers.Add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'); $urlPath = $request.Url.LocalPath.Replace('/', '\'); $filePath = $baseDir + $urlPath; if (Test-Path $filePath -PathType Leaf) { $bytes=[System.IO.File]::ReadAllBytes($filePath); $response.OutputStream.Write($bytes, 0, $bytes.Length); } else { $response.StatusCode=404; }; $response.Close(); }"
+echo [3/3] Launching Safe Web Server via PowerShell...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$port=%PORT%; $netstat=netstat -ano | findstr \":$port \"; if ($netstat) { foreach($line in $netstat) { $procId=($line -split '\s+')[-1]; if ($procId -match '^\d+$') { Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue; } } Start-Sleep -Seconds 1; } $listener=New-Object System.Net.HttpListener; $listener.Prefixes.Add(\"http://*:$port/\"); $listener.Start(); Write-Host '--------------------------------------------------' -ForegroundColor Green; Write-Host \"  Local Server Running on http://%IP_ADDR%:$port  \" -ForegroundColor Green; Write-Host '--------------------------------------------------' -ForegroundColor Green; while ($listener.IsListening) { $context=$listener.GetContext(); $request=$context.Request; $response=$context.Response; $response.Headers.Add('Access-Control-Allow-Origin', '*'); $filePath = 'C:\adImg' + $request.Url.LocalPath.Replace('/', '\'); if (Test-Path $filePath -PathType Leaf) { $bytes=[System.IO.File]::ReadAllBytes($filePath); $response.OutputStream.Write($bytes, 0, $bytes.Length); } else { $response.StatusCode=404; }; $response.Close(); }"
 
 pause
